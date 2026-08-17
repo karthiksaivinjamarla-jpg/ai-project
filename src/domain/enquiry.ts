@@ -40,4 +40,7 @@ export interface Enquiry {
   createdAt: string
   assignedTo?: string
   resolution?: string
+  aiSuggestion?: { category: EnquiryCategory; department: string; summary: string; confidence: number }
+  aiSuggestionConfirmed?: boolean
+  updates?: Array<{ status: EnquiryStatus; message: string; createdAt: string }>
 }

@@ -1,12 +1,17 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
-import { FoundationPage } from '../pages/FoundationPage'
+import { PatientProvider } from './PatientContext'
+import { WelcomePage, HomePage, EnquiryPage, ReviewPage, SuccessPage, TrackPage } from '../pages/PatientPages'
 
 export function App() {
   return (
-    <Routes>
-      <Route path="/" element={<FoundationPage audience="patient" />} />
-      <Route path="/staff" element={<FoundationPage audience="staff" />} />
+    <PatientProvider><Routes>
+      <Route path="/" element={<WelcomePage />} />
+      <Route path="/home" element={<HomePage />} />
+      <Route path="/enquiry/:category" element={<EnquiryPage />} />
+      <Route path="/review" element={<ReviewPage />} />
+      <Route path="/success/:trackingCode" element={<SuccessPage />} />
+      <Route path="/track" element={<TrackPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    </Routes></PatientProvider>
   )
 }

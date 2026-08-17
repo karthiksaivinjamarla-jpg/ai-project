@@ -1,0 +1,5 @@
+import { Mic } from 'lucide-react'
+import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { Button } from './Button'
+export function VoiceInput({ onResult }: { onResult: (text: string) => void }) { const { t, i18n } = useTranslation(); const [message, setMessage] = useState<string>(); const start = () => { const Recognition = (window as Window & { SpeechRecognition?: new () => { lang: string; start(): void; onresult: (event: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void; onerror: () => void } }).SpeechRecognition; if (!Recognition) return setMessage(t('voice.unavailable')); const recognition = new Recognition(); recognition.lang = i18n.language; recognition.onresult = (event) => onResult(event.results[0][0].transcript); recognition.onerror = () => setMessage(t('voice.failed')); recognition.start() }; return <div className="space-y-2"><Button type="button" variant="secondary" onClick={start}><Mic size={20} />{t('voice.button')}</Button>{message && <p role="status" className="text-sm text-slate-700">{message} {t('voice.fallback')}</p>}</div> }
