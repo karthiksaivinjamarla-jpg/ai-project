@@ -47,14 +47,23 @@ describe('patient enquiry experience', () => {
     await user.type(screen.getByRole('textbox'), 'I need a heart doctor')
     await user.click(screen.getByRole('button', { name: 'Continue' }))
     await screen.findByText('Cardiology')
+
     const confirm = screen.getByRole('button', { name: 'Confirm' })
-    confirm.click()
-    confirm.click()
+
+    await user.click(confirm)
+    await user.click(confirm)
+
     expect(await screen.findByText('Enquiry received')).toBeInTheDocument()
+
     const stored = JSON.parse(localStorage.getItem('sevacare.enquiries') ?? '[]')
     expect(stored).toHaveLength(4)
-    expect(stored.filter((item: { description: string }) => item.description === 'I need a heart doctor')).toHaveLength(1)
-  })
+    expect(
+      stored.filter(
+        (item: { description: string }) =>
+          item.description === 'I need a heart doctor',
+      ),
+    ).toHaveLength(1)
+})
 
   it('allows an AI suggestion to be changed before submission', async () => {
     const user = await begin('English')
