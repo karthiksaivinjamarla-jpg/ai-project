@@ -23,7 +23,7 @@ describe('patient enquiry experience', () => {
     expect(selects[1]).toHaveValue('CARDIOLOGY')
     await user.click(screen.getByRole('button', { name: 'నిర్ధారించండి' }))
     const code = (await screen.findByText(/SC-/)).textContent!
-    await user.click(screen.getByRole('button', { name: 'విచారణను ట్రాక్ చేయండి' }))
+    await user.click(screen.getByRole('link', { name: 'విచారణను ట్రాక్ చేయండి' }))
     expect(await screen.findByText(code)).toBeInTheDocument()
     expect(screen.getByText('స్వీకరించబడింది')).toBeInTheDocument()
     expect(localStorage.getItem('sevacare.enquiries')).toContain(code)
@@ -48,11 +48,12 @@ describe('patient enquiry experience', () => {
     await user.click(screen.getByRole('button', { name: 'Continue' }))
     await screen.findByText('Cardiology')
     const confirm = screen.getByRole('button', { name: 'Confirm' })
-    await user.click(confirm)
+    confirm.click()
+    confirm.click()
     expect(await screen.findByText('Enquiry received')).toBeInTheDocument()
     const stored = JSON.parse(localStorage.getItem('sevacare.enquiries') ?? '[]')
-    expect(stored).toHaveLength(1)
-    expect(stored[0].trackingCode).toMatch(/^SC-/)
+    expect(stored).toHaveLength(4)
+    expect(stored.filter((item: { description: string }) => item.description === 'I need a heart doctor')).toHaveLength(1)
   })
 
   it('allows an AI suggestion to be changed before submission', async () => {
@@ -64,7 +65,7 @@ describe('patient enquiry experience', () => {
     await user.selectOptions(selects[0], 'BILLING')
     await user.click(screen.getByRole('button', { name: 'Confirm' }))
     const code = (await screen.findByText(/SC-/)).textContent!
-    await user.click(screen.getByRole('button', { name: 'Track enquiry' }))
+    await user.click(screen.getByRole('link', { name: 'Track enquiry' }))
     expect(await screen.findByText('Billing')).toBeInTheDocument()
     expect(localStorage.getItem('sevacare.enquiries')).toContain('"aiSuggestionConfirmed":false')
     expect(code).toMatch(/^SC-/)
