@@ -1,5 +1,5 @@
 import { CalendarDays, Building2, CircleDollarSign, CircleHelp, CheckCircle2, Search, ArrowLeft } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { usePatient } from '../app/PatientContext'
@@ -46,6 +46,7 @@ export function ReviewPage() {
   const [category, setCategory] = useState<EnquiryCategory>(draft?.category ?? EnquiryCategory.Other)
   const [department, setDepartment] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const submittingRef = useRef(false)
   const [submitError, setSubmitError] = useState('')
 
   useEffect(() => {
@@ -64,13 +65,15 @@ export function ReviewPage() {
   if (!draft) return <Navigate to="/home" replace />
 
   const submit = async () => {
-    if (!suggestion || isSubmitting) return
+    if (!suggestion || submittingRef.current) return
+    submittingRef.current = true
     setIsSubmitting(true)
     setSubmitError('')
     try {
       const enquiry = await service.submit(draft, suggestion, category, department, i18n.language)
       navigate(`/success/${enquiry.trackingCode}`)
     } catch {
+      submittingRef.current = false
       setIsSubmitting(false)
       setSubmitError(t('review.submitError'))
     }
