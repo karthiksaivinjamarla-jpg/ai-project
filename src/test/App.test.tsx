@@ -14,6 +14,7 @@ describe('patient enquiry experience', () => {
   it('completes the Telugu golden flow and shows tracking status', async () => {
     const user = await begin('తెలుగు')
     expect(document.documentElement.lang).toBe('te')
+    expect(sessionStorage.getItem('sevacare.language')).toBe('te')
     await user.click(await screen.findByRole('link', { name: 'అపాయింట్‌మెంట్' }))
     await user.type(screen.getByRole('textbox', { name: 'మీకు ఏమి కావాలో చెప్పండి.' }), 'నాకు గుండె వైద్యుడిని కలవాలి')
     await user.click(screen.getByRole('button', { name: 'కొనసాగించండి' }))
@@ -27,6 +28,7 @@ describe('patient enquiry experience', () => {
     expect(screen.getByText('స్వీకరించబడింది')).toBeInTheDocument()
     expect(localStorage.getItem('sevacare.enquiries')).toContain(code)
   })
+
   it('completes the Hindi flow without English fallback text', async () => {
     const user = await begin('हिन्दी')
     expect(document.documentElement.lang).toBe('hi')
@@ -38,6 +40,21 @@ describe('patient enquiry experience', () => {
     expect(selects[1]).toHaveValue('CARDIOLOGY')
     expect(screen.getByRole('button', { name: 'पुष्टि करें' })).toBeInTheDocument()
   })
+
+  it('prevents duplicate enquiry submission while confirming', async () => {
+    const user = await begin('English')
+    await user.click(await screen.findByRole('link', { name: 'Appointment' }))
+    await user.type(screen.getByRole('textbox'), 'I need a heart doctor')
+    await user.click(screen.getByRole('button', { name: 'Continue' }))
+    await screen.findByText('Cardiology')
+    const confirm = screen.getByRole('button', { name: 'Confirm' })
+    await user.click(confirm)
+    expect(await screen.findByText('Enquiry received')).toBeInTheDocument()
+    const stored = JSON.parse(localStorage.getItem('sevacare.enquiries') ?? '[]')
+    expect(stored).toHaveLength(1)
+    expect(stored[0].trackingCode).toMatch(/^SC-/)
+  })
+
   it('allows an AI suggestion to be changed before submission', async () => {
     const user = await begin('English')
     await user.click(await screen.findByRole('link', { name: 'Appointment' }))
@@ -52,6 +69,20 @@ describe('patient enquiry experience', () => {
     expect(localStorage.getItem('sevacare.enquiries')).toContain('"aiSuggestionConfirmed":false')
     expect(code).toMatch(/^SC-/)
   })
+
+  it('clears the draft when starting another enquiry', async () => {
+    const user = await begin('English')
+    await user.click(await screen.findByRole('link', { name: 'Appointment' }))
+    await user.type(screen.getByRole('textbox'), 'I need a heart doctor')
+    await user.click(screen.getByRole('button', { name: 'Continue' }))
+    await screen.findByText('Cardiology')
+    await user.click(screen.getByRole('button', { name: 'Confirm' }))
+    await user.click(await screen.findByRole('link', { name: 'Start another enquiry' }))
+    await user.click(await screen.findByRole('link', { name: 'Appointment' }))
+    await user.click(screen.getByRole('button', { name: 'Continue' }))
+    expect(screen.getByRole('alert')).toHaveTextContent('Please tell us what you need.')
+  })
+
   it('keeps typed input available when voice is unavailable and validates empty input', async () => {
     const user = await begin('English')
     await user.click(await screen.findByRole('link', { name: 'Other' }))
