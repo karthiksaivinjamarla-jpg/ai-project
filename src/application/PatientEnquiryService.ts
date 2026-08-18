@@ -8,6 +8,22 @@ export class PatientEnquiryService {
   constructor(private readonly repository: EnquiryRepository, private readonly ai: AIService) {}
   async interpret(draft: PatientDraft, language: string): Promise<ClassificationResult> { return this.ai.classifyEnquiry(draft.description, language) }
   async findByTrackingCode(code: string) { return this.repository.findEnquiryByTrackingCode(code) }
+  async listEnquiries() { return this.repository.listEnquiries() }
+  async updateEnquiry(enquiry: Enquiry, changes: { status?: EnquiryStatus; assignedTo?: string; resolution?: string }): Promise<Enquiry> {
+    const now = new Date().toISOString()
+    const nextStatus = changes.status ?? enquiry.status
+    const statusChanged = nextStatus !== enquiry.status
+    const updates = statusChanged
+      ? [...(enquiry.updates ?? []), { status: nextStatus, message: `status:${nextStatus}`, createdAt: now }]
+      : enquiry.updates
+    return this.repository.saveEnquiry({
+      ...enquiry,
+      status: nextStatus,
+      assignedTo: changes.assignedTo === undefined ? enquiry.assignedTo : changes.assignedTo || undefined,
+      resolution: changes.resolution === undefined ? enquiry.resolution : changes.resolution || undefined,
+      updates,
+    })
+  }
   async submit(draft: PatientDraft, suggestion: ClassificationResult, confirmedCategory: EnquiryCategory, department: string, language: string): Promise<Enquiry> {
     const now = new Date().toISOString()
     const enquiry: Enquiry = { id: crypto.randomUUID(), trackingCode: `SC-${Math.random().toString(36).slice(2, 6).toUpperCase()}-${Date.now().toString().slice(-4)}`, patientId: 'patient-demo', category: confirmedCategory, description: draft.description, detectedLanguage: language, department, status: EnquiryStatus.New, priority: 'NORMAL', source: draft.source, createdAt: now, aiSuggestion: { ...suggestion }, aiSuggestionConfirmed: confirmedCategory === suggestion.category && department === suggestion.department, updates: [{ status: EnquiryStatus.New, message: 'received', createdAt: now }] }
