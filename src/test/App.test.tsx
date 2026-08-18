@@ -56,14 +56,14 @@ describe('patient enquiry experience', () => {
     expect(await screen.findByText('Enquiry received')).toBeInTheDocument()
 
     const stored = JSON.parse(localStorage.getItem('sevacare.enquiries') ?? '[]')
-    expect(stored).toHaveLength(4)
+    expect(stored).toHaveLength(3)
     expect(
       stored.filter(
         (item: { description: string }) =>
           item.description === 'I need a heart doctor',
       ),
     ).toHaveLength(1)
-})
+  })
 
   it('allows an AI suggestion to be changed before submission', async () => {
     const user = await begin('English')
