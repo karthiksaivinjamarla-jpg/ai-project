@@ -12,15 +12,18 @@ const allowedTransitions: Record<EnquiryStatus, EnquiryStatus[]> = {
   [EnquiryStatus.Resolved]: [],
 }
 
+type EnquiryPriority = Enquiry['priority']
+
 export class PatientEnquiryService {
   constructor(private readonly repository: EnquiryRepository, private readonly ai: AIService) {}
   async interpret(draft: PatientDraft, language: string): Promise<ClassificationResult> { return this.ai.classifyEnquiry(draft.description, language) }
   async findByTrackingCode(code: string) { return this.repository.findEnquiryByTrackingCode(code) }
   async listEnquiries() { return this.repository.listEnquiries() }
-  async updateEnquiry(enquiry: Enquiry, changes: { status?: EnquiryStatus; assignedTo?: string; resolution?: string }): Promise<Enquiry> {
+  async updateEnquiry(enquiry: Enquiry, changes: { status?: EnquiryStatus; assignedTo?: string; resolution?: string; priority?: EnquiryPriority }): Promise<Enquiry> {
     const now = new Date().toISOString()
     const nextStatus = changes.status ?? enquiry.status
     const statusChanged = nextStatus !== enquiry.status
+    const priorityChanged = changes.priority !== undefined && changes.priority !== enquiry.priority
     if (statusChanged && !allowedTransitions[enquiry.status].includes(nextStatus)) {
       throw new Error(`Invalid enquiry status transition: ${enquiry.status} -> ${nextStatus}`)
     }
@@ -35,9 +38,11 @@ export class PatientEnquiryService {
     if (changes.resolution !== undefined && changes.resolution !== enquiry.resolution && changes.resolution.trim()) {
       updates.push({ status: nextStatus, message: 'resolution:updated', createdAt: now })
     }
+    if (priorityChanged) updates.push({ status: nextStatus, message: `priority:${changes.priority}`, createdAt: now })
     return this.repository.saveEnquiry({
       ...enquiry,
       status: nextStatus,
+      priority: changes.priority ?? enquiry.priority,
       assignedTo: changes.assignedTo === undefined ? enquiry.assignedTo : changes.assignedTo || undefined,
       resolution: changes.resolution === undefined ? enquiry.resolution : changes.resolution || undefined,
       updates,
