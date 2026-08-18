@@ -4,6 +4,14 @@ import type { EnquiryRepository } from '../services/data'
 
 export interface PatientDraft { category: EnquiryCategory; description: string; source: EnquirySource }
 
+const allowedTransitions: Record<EnquiryStatus, EnquiryStatus[]> = {
+  [EnquiryStatus.New]: [EnquiryStatus.Assigned, EnquiryStatus.InProgress, EnquiryStatus.Waiting],
+  [EnquiryStatus.Assigned]: [EnquiryStatus.InProgress, EnquiryStatus.Waiting],
+  [EnquiryStatus.InProgress]: [EnquiryStatus.Waiting, EnquiryStatus.Resolved],
+  [EnquiryStatus.Waiting]: [EnquiryStatus.InProgress, EnquiryStatus.Resolved],
+  [EnquiryStatus.Resolved]: [],
+}
+
 export class PatientEnquiryService {
   constructor(private readonly repository: EnquiryRepository, private readonly ai: AIService) {}
   async interpret(draft: PatientDraft, language: string): Promise<ClassificationResult> { return this.ai.classifyEnquiry(draft.description, language) }
@@ -13,9 +21,20 @@ export class PatientEnquiryService {
     const now = new Date().toISOString()
     const nextStatus = changes.status ?? enquiry.status
     const statusChanged = nextStatus !== enquiry.status
-    const updates = statusChanged
-      ? [...(enquiry.updates ?? []), { status: nextStatus, message: `status:${nextStatus}`, createdAt: now }]
-      : enquiry.updates
+    if (statusChanged && !allowedTransitions[enquiry.status].includes(nextStatus)) {
+      throw new Error(`Invalid enquiry status transition: ${enquiry.status} -> ${nextStatus}`)
+    }
+    if (nextStatus === EnquiryStatus.Resolved && !(changes.resolution ?? enquiry.resolution)?.trim()) {
+      throw new Error('A resolution note is required before resolving an enquiry')
+    }
+    const updates = [...(enquiry.updates ?? [])]
+    if (statusChanged) updates.push({ status: nextStatus, message: `status:${nextStatus}`, createdAt: now })
+    if (changes.assignedTo !== undefined && changes.assignedTo !== enquiry.assignedTo) {
+      updates.push({ status: nextStatus, message: `assigned:${changes.assignedTo || 'unassigned'}`, createdAt: now })
+    }
+    if (changes.resolution !== undefined && changes.resolution !== enquiry.resolution && changes.resolution.trim()) {
+      updates.push({ status: nextStatus, message: 'resolution:updated', createdAt: now })
+    }
     return this.repository.saveEnquiry({
       ...enquiry,
       status: nextStatus,
