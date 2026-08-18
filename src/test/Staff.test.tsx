@@ -57,4 +57,11 @@ describe('staff enquiry dashboard', () => {
     const stored = JSON.parse(localStorage.getItem('sevacare.enquiries') ?? '[]')
     expect(stored.find((item: { trackingCode: string }) => item.trackingCode === seededTrackingCode)).toMatchObject({ status: 'ASSIGNED', assignedTo: 'Appointments' })
   })
+
+  it('recovers from corrupted browser enquiry storage', async () => {
+    localStorage.setItem('sevacare.enquiries', '{not-valid-json')
+    renderStaff()
+    expect(await screen.findByText(seededTrackingCode)).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
 })
