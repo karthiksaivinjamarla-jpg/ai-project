@@ -6,6 +6,8 @@ import '../i18n'
 import i18n from '../i18n'
 import { App } from '../app/App'
 
+const seededTrackingCode = 'SC-1001'
+
 function renderStaff() { return render(<MemoryRouter initialEntries={['/staff']}><App /></MemoryRouter>) }
 beforeEach(async () => { localStorage.clear(); sessionStorage.clear(); await i18n.changeLanguage('en'); document.documentElement.lang = 'en' })
 
@@ -14,18 +16,19 @@ describe('staff enquiry dashboard', () => {
     const user = userEvent.setup()
     renderStaff()
     expect(await screen.findByRole('heading', { name: 'Enquiry management' })).toBeInTheDocument()
-    expect(screen.getByText('SC-DEMO-0001')).toBeInTheDocument()
+    expect(screen.getByText(seededTrackingCode)).toBeInTheDocument()
     await user.selectOptions(screen.getByRole('combobox', { name: 'Filter status' }), 'RESOLVED')
-    await waitFor(() => expect(screen.queryByText('SC-DEMO-0001')).not.toBeInTheDocument())
+    await waitFor(() => expect(screen.queryByText(seededTrackingCode)).not.toBeInTheDocument())
   })
+
   it('updates assignment and status from enquiry details', async () => {
     const user = userEvent.setup()
     renderStaff()
-    await user.click(await screen.findByText('SC-DEMO-0001'))
+    await user.click(await screen.findByText(seededTrackingCode))
     await user.selectOptions(screen.getByRole('combobox', { name: 'Status' }), 'ASSIGNED')
     await user.selectOptions(screen.getByRole('combobox', { name: 'Assign to' }), 'Appointments')
     await waitFor(() => expect(screen.getByText('Appointments')).toBeInTheDocument())
     const stored = JSON.parse(localStorage.getItem('sevacare.enquiries') ?? '[]')
-    expect(stored.find((item: { trackingCode: string }) => item.trackingCode === 'SC-DEMO-0001')).toMatchObject({ status: 'ASSIGNED', assignedTo: 'Appointments' })
+    expect(stored.find((item: { trackingCode: string }) => item.trackingCode === seededTrackingCode)).toMatchObject({ status: 'ASSIGNED', assignedTo: 'Appointments' })
   })
 })
