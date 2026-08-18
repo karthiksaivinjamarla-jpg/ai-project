@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { PatientProvider } from './PatientContext'
 import { WelcomePage, HomePage, EnquiryPage, ReviewPage, SuccessPage, TrackPage } from '../pages/PatientPages'
+import { StaffDashboardPage } from '../pages/StaffPages'
 
 export function App() {
   return (
@@ -11,6 +12,7 @@ export function App() {
       <Route path="/review" element={<ReviewPage />} />
       <Route path="/success/:trackingCode" element={<SuccessPage />} />
       <Route path="/track" element={<TrackPage />} />
+      <Route path="/staff" element={<StaffDashboardPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes></PatientProvider>
   )
