@@ -58,6 +58,37 @@ describe('staff enquiry dashboard', () => {
     expect(stored.find((item: { trackingCode: string }) => item.trackingCode === seededTrackingCode)).toMatchObject({ status: 'ASSIGNED', assignedTo: 'Appointments' })
   })
 
+  it('rejects resolving an enquiry without a resolution note', async () => {
+    const user = userEvent.setup()
+    renderStaff()
+    await user.click(await screen.findByText(seededTrackingCode))
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Status' }), 'RESOLVED')
+    expect(await screen.findByRole('alert')).toHaveTextContent('A resolution note is required before resolving an enquiry')
+    expect(screen.getByRole('combobox', { name: 'Status' })).toHaveValue('NEW')
+    const stored = JSON.parse(localStorage.getItem('sevacare.enquiries') ?? '[]')
+    expect(stored.find((item: { trackingCode: string }) => item.trackingCode === seededTrackingCode)).toMatchObject({ status: 'NEW' })
+  })
+
+  it('resolves an enquiry with a note and records the workflow history', async () => {
+    const user = userEvent.setup()
+    renderStaff()
+    await user.click(await screen.findByText(seededTrackingCode))
+    const note = screen.getByRole('textbox', { name: 'Resolution / staff note' })
+    await user.type(note, 'Appointment confirmed with cardiology')
+    await user.tab()
+    await waitFor(() => expect(screen.getByText('resolution:updated')).toBeInTheDocument())
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Status' }), 'ASSIGNED')
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Status' }), 'IN_PROGRESS')
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Status' }), 'RESOLVED')
+    await waitFor(() => expect(screen.getByRole('combobox', { name: 'Status' })).toHaveValue('RESOLVED'))
+    expect(screen.getByText('status:RESOLVED')).toBeInTheDocument()
+    const stored = JSON.parse(localStorage.getItem('sevacare.enquiries') ?? '[]')
+    expect(stored.find((item: { trackingCode: string }) => item.trackingCode === seededTrackingCode)).toMatchObject({
+      status: 'RESOLVED',
+      resolution: 'Appointment confirmed with cardiology',
+    })
+  })
+
   it('recovers from corrupted browser enquiry storage', async () => {
     localStorage.setItem('sevacare.enquiries', '{not-valid-json')
     renderStaff()
