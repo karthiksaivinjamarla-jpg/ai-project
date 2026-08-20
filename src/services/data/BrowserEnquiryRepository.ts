@@ -8,13 +8,23 @@ export class BrowserEnquiryRepository implements EnquiryRepository {
 
   private read(): Enquiry[] {
     const raw = localStorage.getItem(key)
-    if (!raw) return [...this.seed]
+    if (!raw) {
+      const seeded = [...this.seed]
+      this.write(seeded)
+      return seeded
+    }
     try {
       const parsed: unknown = JSON.parse(raw)
-      if (!Array.isArray(parsed)) return [...this.seed]
+      if (!Array.isArray(parsed)) {
+        const seeded = [...this.seed]
+        this.write(seeded)
+        return seeded
+      }
       return parsed as Enquiry[]
     } catch {
-      return [...this.seed]
+      const seeded = [...this.seed]
+      this.write(seeded)
+      return seeded
     }
   }
 
