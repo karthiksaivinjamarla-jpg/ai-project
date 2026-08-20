@@ -24,12 +24,16 @@ export class PatientEnquiryService {
     const nextStatus = changes.status ?? enquiry.status
     const statusChanged = nextStatus !== enquiry.status
     const priorityChanged = changes.priority !== undefined && changes.priority !== enquiry.priority
-    if (statusChanged && !allowedTransitions[enquiry.status].includes(nextStatus)) {
-      throw new Error(`Invalid enquiry status transition: ${enquiry.status} -> ${nextStatus}`)
-    }
+
+    // Give the user the actionable resolution-note error before reporting a
+    // transition problem when they try to resolve without a note.
     if (nextStatus === EnquiryStatus.Resolved && !(changes.resolution ?? enquiry.resolution)?.trim()) {
       throw new Error('A resolution note is required before resolving an enquiry')
     }
+    if (statusChanged && !allowedTransitions[enquiry.status].includes(nextStatus)) {
+      throw new Error(`Invalid enquiry status transition: ${enquiry.status} -> ${nextStatus}`)
+    }
+
     const updates = [...(enquiry.updates ?? [])]
     if (statusChanged) updates.push({ status: nextStatus, message: `status:${nextStatus}`, createdAt: now })
     if (changes.assignedTo !== undefined && changes.assignedTo !== enquiry.assignedTo) {
